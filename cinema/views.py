@@ -1,11 +1,17 @@
 from django.db.models import F
 from django.db.models.aggregates import Count
 from django.db.models.functions import Greatest, Coalesce
-from django.urls import get_ns_resolver
 from rest_framework import viewsets, permissions
 from rest_framework.pagination import PageNumberPagination
 
-from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order, Ticket
+from cinema.models import (
+    Genre,
+    Actor,
+    CinemaHall,
+    Movie,
+    MovieSession,
+    Order,
+)
 
 from cinema.serializers import (
     GenreSerializer,
@@ -22,9 +28,10 @@ from cinema.serializers import (
 
 
 class OrderPagination(PageNumberPagination):
-    page_size = 1
+    page_size = 5
     page_query_param = "page_size"
-    max_page_size = 1
+    max_page_size = 10
+
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
@@ -90,16 +97,24 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         date = self.request.query_params.get("show_time")
         movie = self.request.query_params.get("movie")
         if date:
-            queryset = queryset.filter(show_time__date=date)
+            queryset = queryset.filter(show_time=date)
         if movie:
             queryset = queryset.filter(movie__id=movie)
         if self.action == "list":
-            queryset = queryset.select_related("cinema_hall").annotate(
-                taken=Coalesce(Count("tickets"), 0),
-                cinema_hall_capacity=F("cinema_hall__rows") * F("cinema_hall__seats_in_row"),
-            ).annotate(
-                tickets_available=Greatest(F("cinema_hall_capacity") - F("taken"), 0)
-            ).order_by("id")
+            queryset = (
+                queryset.select_related("cinema_hall")
+                .annotate(
+                    taken=Coalesce(Count("tickets"), 0),
+                    cinema_hall_capacity=F("cinema_hall__rows")
+                    * F("cinema_hall__seats_in_row"),
+                )
+                .annotate(
+                    tickets_available=Greatest(
+                        F("cinema_hall_capacity") - F("taken"), 0
+                    )
+                )
+                .order_by("id")
+            )
         return queryset.distinct()
 
 
@@ -110,12 +125,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return self.queryset.filter(user=self.request.user).order_by("-created_at")
-
-
-
-
-
-
-
-
+        return (self.queryset.filter(
+                user=self.request.user)
+                .order_by("-created_at"))
