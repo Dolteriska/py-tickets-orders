@@ -94,10 +94,10 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = self.queryset
-        date = self.request.query_params.get("show_time")
+        date = self.request.query_params.get("date")
         movie = self.request.query_params.get("movie")
         if date:
-            queryset = queryset.filter(show_time=date)
+            queryset = queryset.filter(show_time__date=date)
         if movie:
             queryset = queryset.filter(movie__id=movie)
         if self.action == "list":
@@ -115,7 +115,7 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
                 )
                 .order_by("id")
             )
-        return queryset.distinct()
+        return queryset
 
 
 class OrderViewSet(viewsets.ModelViewSet):
