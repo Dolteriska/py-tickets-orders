@@ -2,7 +2,6 @@ from django.db.models import F
 from django.db.models.aggregates import Count
 from django.db.models.functions import Greatest, Coalesce
 from rest_framework import viewsets, permissions
-from rest_framework.pagination import PageNumberPagination
 
 from cinema.models import (
     Genre,
@@ -25,12 +24,6 @@ from cinema.serializers import (
     MovieListSerializer,
     OrderSerializer,
 )
-
-
-class OrderPagination(PageNumberPagination):
-    page_size = 5
-    page_query_param = "page_size"
-    max_page_size = 10
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -97,7 +90,7 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         date = self.request.query_params.get("date")
         movie = self.request.query_params.get("movie")
         if date:
-            queryset = queryset.filter(show_time__date=date)
+            queryset = queryset.filter(show_time=date)
         if movie:
             queryset = queryset.filter(movie__id=movie)
         if self.action == "list":
@@ -121,7 +114,6 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects
     serializer_class = OrderSerializer
-    pagination_class = OrderPagination
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
